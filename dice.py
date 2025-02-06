@@ -22,10 +22,11 @@ def load_banner():
     try:
         response = requests.get(BANNER_URL)
         response.raise_for_status()
-        data = response.json()
-        return data.get("banner", "MagicNewton")
+        # Get the raw text content
+        banner = response.text
+        return banner if banner else "MagicNewton"
     except Exception as e:
-        print(Fore.RED + "Failed to load banner:", e)
+        print(Fore.RED + f"Failed to load banner: {str(e)}")
         return "MagicNewton"
 
 banner_text = load_banner()
@@ -94,7 +95,7 @@ def schedule_api():
         print(Fore.RED + "Invalid input. Please enter a number.")
 
 def main():
-    print(Fore.LIGHTBLUE_EX + f"\n=== {banner_text} ===\n")
+    print(Fore.LIGHTBLUE_EX + banner_text)  # Print the full ASCII art banner
 
     while True:
         print("\nMenu:")
