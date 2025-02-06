@@ -1,8 +1,10 @@
-import tkinter as tk
-from tkinter import messagebox
 import requests
 import json
-from threading import Timer
+import time
+from colorama import Fore, Style, init
+
+# Initialize colorama
+init(autoreset=True)
 
 # Constants
 API_URL = "https://www.magicnewton.com/portal/api/userQuests"
@@ -15,7 +17,7 @@ headers_template = {
 
 accounts = []
 
-# Functions
+# Load banner
 def load_banner():
     try:
         response = requests.get(BANNER_URL)
@@ -23,40 +25,22 @@ def load_banner():
         data = response.json()
         return data.get("banner", "MagicNewton")
     except Exception as e:
-        print("Failed to load banner:", e)
+        print(Fore.RED + "Failed to load banner:", e)
         return "MagicNewton"
 
 banner_text = load_banner()
 
-# Add Account
 def add_account():
-    def save_account():
-        name = name_entry.get().strip()
-        cookies = cookie_entry.get().strip()
+    name = input(Fore.YELLOW + "Enter account name: ").strip()
+    cookies = input(Fore.YELLOW + "Enter account cookies: ").strip()
 
-        if not name or not cookies:
-            messagebox.showerror("Error", "Please provide both account name and cookies.")
-            return
+    if not name or not cookies:
+        print(Fore.RED + "Error: Both account name and cookies are required.")
+        return
 
-        accounts.append({"name": name, "cookies": cookies})
-        account_listbox.insert(tk.END, name)
-        add_window.destroy()
-        messagebox.showinfo("Success", f"Account '{name}' added successfully.")
+    accounts.append({"name": name, "cookies": cookies})
+    print(Fore.GREEN + f"Account '{name}' added successfully.")
 
-    add_window = tk.Toplevel(root)
-    add_window.title("Add Account")
-
-    tk.Label(add_window, text="Account Name:").pack(pady=5)
-    name_entry = tk.Entry(add_window)
-    name_entry.pack(pady=5)
-
-    tk.Label(add_window, text="Cookies:").pack(pady=5)
-    cookie_entry = tk.Entry(add_window)
-    cookie_entry.pack(pady=5)
-
-    tk.Button(add_window, text="Save", command=save_account).pack(pady=10)
-
-# API Request
 def run_api(account):
     payload = json.dumps({"questId": "f56c760b-2186-40cb-9cbc-3af4a3dc20e2", "metadata": {}})
     headers = headers_template.copy()
@@ -65,57 +49,73 @@ def run_api(account):
     try:
         response = requests.post(API_URL, data=payload, headers=headers)
         if response.status_code == 200:
-            messagebox.showinfo("Success", f"API call for {account['name']} succeeded.")
+            print(Fore.GREEN + f"API call for {account['name']} succeeded.")
         else:
-            messagebox.showerror("Error", f"API call failed for {account['name']} with status {response.status_code}.")
+            print(Fore.RED + f"API call failed for {account['name']} with status {response.status_code}.")
     except Exception as e:
-        messagebox.showerror("Error", f"Failed to run API for {account['name']}: {e}")
+        print(Fore.RED + f"Failed to run API for {account['name']}: {e}")
 
-# Run Once
 def run_one():
-    selected = account_listbox.curselection()
-    if not selected:
-        messagebox.showerror("Error", "Please select an account.")
+    if not accounts:
+        print(Fore.RED + "No accounts available. Please add an account first.")
         return
 
-    account = accounts[selected[0]]
-    run_api(account)
+    for i, account in enumerate(accounts):
+        print(Fore.CYAN + f"{i + 1}. {account['name']}")
 
-# Run Every 24 Hours
+    try:
+        choice = int(input(Fore.YELLOW + "Select an account (number): ")) - 1
+        if 0 <= choice < len(accounts):
+            run_api(accounts[choice])
+        else:
+            print(Fore.RED + "Invalid choice.")
+    except ValueError:
+        print(Fore.RED + "Invalid input. Please enter a number.")
+
 def schedule_api():
-    selected = account_listbox.curselection()
-    if not selected:
-        messagebox.showerror("Error", "Please select an account.")
+    if not accounts:
+        print(Fore.RED + "No accounts available. Please add an account first.")
         return
 
-    account = accounts[selected[0]]
+    for i, account in enumerate(accounts):
+        print(Fore.CYAN + f"{i + 1}. {account['name']}")
 
-    def task():
-        run_api(account)
-        Timer(86400, task).start()  # Schedule for the next 24 hours
+    try:
+        choice = int(input(Fore.YELLOW + "Select an account (number): ")) - 1
+        if 0 <= choice < len(accounts):
+            account = accounts[choice]
+            print(Fore.GREEN + f"API scheduled every 24 hours for {account['name']}.")
+            while True:
+                run_api(account)
+                time.sleep(86400)  # Schedule for the next 24 hours
+        else:
+            print(Fore.RED + "Invalid choice.")
+    except ValueError:
+        print(Fore.RED + "Invalid input. Please enter a number.")
 
-    messagebox.showinfo("Scheduled", f"API scheduled every 24 hours for {account['name']}.")
-    task()
+def main():
+    print(Fore.LIGHTBLUE_EX + f"\n=== {banner_text} ===\n")
 
-# Exit Application
-def exit_app():
-    root.destroy()
+    while True:
+        print("\nMenu:")
+        print(Fore.CYAN + "1. Add Account")
+        print(Fore.CYAN + "2. Run One API Call")
+        print(Fore.CYAN + "3. Schedule API Call (Every 24 Hours)")
+        print(Fore.CYAN + "4. Exit")
 
-# UI Setup
-root = tk.Tk()
-root.title("MagicNewton Bot")
+        choice = input(Fore.YELLOW + "Select an option: ").strip()
+        
+        if choice == "1":
+            add_account()
+        elif choice == "2":
+            run_one()
+        elif choice == "3":
+            schedule_api()
+        elif choice == "4":
+            print(Fore.LIGHTRED_EX + "Exiting... Bye!")
+            break
+        else:
+            print(Fore.RED + "Invalid option. Please try again.")
 
-# Header
-tk.Label(root, text=banner_text, font=("Helvetica", 16), fg="blue").pack(pady=10)
-
-# Account Listbox
-account_listbox = tk.Listbox(root, height=6)
-account_listbox.pack(pady=10)
-
-# Buttons
-tk.Button(root, text="Add Account", bg="green", fg="white", command=add_account).pack(pady=5)
-tk.Button(root, text="Run One", bg="blue", fg="white", command=run_one).pack(pady=5)
-tk.Button(root, text="Run Every 24 Hours", bg="orange", fg="white", command=schedule_api).pack(pady=5)
-tk.Button(root, text="Exit", bg="red", fg="white", command=exit_app).pack(pady=5)
-
-root.mainloop()
+if __name__ == "__main__":
+    main()
