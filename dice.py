@@ -2,6 +2,7 @@ import requests
 import json
 import time
 from colorama import Fore, Style, init
+import random
 
 # Initialize colorama
 init(autoreset=True)
@@ -16,6 +17,8 @@ headers_template = {
 }
 
 accounts = []
+proxies = []
+use_proxy = False
 
 def load_banner():
     try:
@@ -30,9 +33,7 @@ def print_yellow_banner(banner_text):
     print(Fore.YELLOW + banner_text)
 
 def format_cookies(cookie_string):
-    """Format cookie string and return a dict of cookies"""
     try:
-        # Split cookies and create a dictionary
         cookies = {}
         for cookie in cookie_string.split(';'):
             if '=' in cookie:
@@ -59,35 +60,68 @@ def add_account():
     accounts.append({
         "name": name,
         "cookies": cookies,
-        "formatted_cookies": formatted_cookies
+        "formatted_cookies": formatted_cookies,
+        "total_credits": 0
     })
     print(Fore.GREEN + f"Account '{name}' added successfully.")
 
+def add_proxies():
+    print(Fore.YELLOW + "\nEnter your proxies (one per line, format: ip:port or user:pass@ip:port)")
+    print(Fore.YELLOW + "Press Enter twice when done:")
+    
+    while True:
+        proxy = input().strip()
+        if not proxy:
+            break
+        proxies.append(proxy)
+    
+    if proxies:
+        print(Fore.GREEN + f"Added {len(proxies)} proxies successfully.")
+    else:
+        print(Fore.RED + "No proxies were added.")
+
+def get_random_proxy():
+    if not proxies:
+        return None
+    return {"http": f"http://{random.choice(proxies)}", "https": f"http://{random.choice(proxies)}"}
+
+def ask_proxy_preference():
+    while True:
+        choice = input(Fore.YELLOW + "Do you want to use proxy for this operation? (y/n): ").strip().lower()
+        if choice in ['y', 'n']:
+            return choice == 'y'
+        print(Fore.RED + "Invalid choice. Please enter 'y' or 'n'.")
+
 def run_api(account):
+    global use_proxy
     payload = json.dumps({"questId": "f56c760b-2186-40cb-9cbc-3af4a3dc20e2", "metadata": {}})
     headers = headers_template.copy()
     
+    current_proxy = get_random_proxy() if use_proxy and proxies else None
+    
     try:
-        # Send the request with cookies as a dictionary
         response = requests.post(
             API_URL, 
             data=payload, 
             headers=headers,
-            cookies=account["formatted_cookies"]
+            cookies=account["formatted_cookies"],
+            proxies=current_proxy,
+            timeout=30
         )
         
-        # Print detailed response information for debugging
-        print(Fore.YELLOW + f"Response Status: {response.status_code}")
-        print(Fore.YELLOW + f"Response Headers: {dict(response.headers)}")
-        try:
-            print(Fore.YELLOW + f"Response Body: {response.json()}")
-        except:
-            print(Fore.YELLOW + f"Response Text: {response.text[:200]}")  # First 200 chars
-            
         if response.status_code == 200:
-            print(Fore.GREEN + f"API call for {account['name']} succeeded.")
+            try:
+                resp_data = response.json()
+                credits = resp_data.get('data', {}).get('credits', 0)
+                account['total_credits'] += credits
+                print(Fore.GREEN + f"API call for {account['name']} succeeded.")
+                print(Fore.GREEN + f"Credits earned: {credits}")
+                print(Fore.GREEN + f"Total credits for {account['name']}: {account['total_credits']}")
+            except json.JSONDecodeError:
+                print(Fore.RED + "Failed to parse response JSON")
         else:
             print(Fore.RED + f"API call failed for {account['name']} with status {response.status_code}.")
+            print(Fore.RED + f"Response: {response.text[:200]}")
     except Exception as e:
         print(Fore.RED + f"Failed to run API for {account['name']}: {e}")
 
@@ -96,12 +130,15 @@ def run_one():
         print(Fore.RED + "No accounts available. Please add an account first.")
         return
 
+    global use_proxy
     for i, account in enumerate(accounts):
-        print(Fore.CYAN + f"{i + 1}. {account['name']}")
+        print(Fore.CYAN + f"{i + 1}. {account['name']} (Total Credits: {account['total_credits']})")
 
     try:
         choice = int(input(Fore.YELLOW + "Select an account (number): ")) - 1
         if 0 <= choice < len(accounts):
+            if proxies:
+                use_proxy = ask_proxy_preference()
             run_api(accounts[choice])
         else:
             print(Fore.RED + "Invalid choice.")
@@ -113,12 +150,15 @@ def schedule_api():
         print(Fore.RED + "No accounts available. Please add an account first.")
         return
 
+    global use_proxy
     for i, account in enumerate(accounts):
-        print(Fore.CYAN + f"{i + 1}. {account['name']}")
+        print(Fore.CYAN + f"{i + 1}. {account['name']} (Total Credits: {account['total_credits']})")
 
     try:
         choice = int(input(Fore.YELLOW + "Select an account (number): ")) - 1
         if 0 <= choice < len(accounts):
+            if proxies:
+                use_proxy = ask_proxy_preference()
             account = accounts[choice]
             print(Fore.GREEN + f"API scheduled every 24 hours for {account['name']}.")
             while True:
@@ -138,7 +178,8 @@ def main():
         print(Fore.CYAN + "1. Add Account")
         print(Fore.CYAN + "2. Run One API Call")
         print(Fore.CYAN + "3. Schedule API Call (Every 24 Hours)")
-        print(Fore.CYAN + "4. Exit")
+        print(Fore.CYAN + "4. Add Proxies")
+        print(Fore.CYAN + "5. Exit")
 
         choice = input(Fore.YELLOW + "Select an option: ").strip()
         
@@ -149,6 +190,8 @@ def main():
         elif choice == "3":
             schedule_api()
         elif choice == "4":
+            add_proxies()
+        elif choice == "5":
             print(Fore.LIGHTRED_EX + "Exiting... Bye!")
             break
         else:
