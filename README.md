@@ -10,9 +10,7 @@ this script doesn't require your seed or private key.
 
 ```git clone https://github.com/Aniketcrypto/magicnewton-dice && cd magicnewton-dice```
 
-```pip install requests```
-
-if getting module error use this ```sudo apt install python3-tk```(for ubuntu vps)
+```pip install requests colorama```
 
 ```python3 dice.py```
 
