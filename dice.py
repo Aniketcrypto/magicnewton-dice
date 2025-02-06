@@ -24,6 +24,18 @@ accounts = []
 proxies = []
 use_proxy = False
 
+def load_banner():
+    try:
+        response = requests.get(BANNER_URL)
+        response.raise_for_status()
+        return response.text if response.text else "MagicNewton"
+    except Exception as e:
+        print(Fore.RED + f"Failed to load banner: {str(e)}")
+        return "MagicNewton"
+
+def print_yellow_banner(banner_text):
+    print(Fore.YELLOW + banner_text)
+
 def save_accounts():
     try:
         with open(ACCOUNTS_FILE, 'w') as f:
@@ -107,36 +119,11 @@ def run_api(account):
     except Exception as e:
         print(Fore.RED + f"Failed to run API for {account['name']}: {e}")
 
-def run_all():
-    global use_proxy
-    if not accounts:
-        print(Fore.RED + "No accounts available. Please add an account first.")
-        return
-    
-    if proxies:
-        use_proxy = ask_proxy_preference()
-    
-    for account in accounts:
-        run_api(account)
-
-def schedule_all():
-    global use_proxy
-    if not accounts:
-        print(Fore.RED + "No accounts available. Please add an account first.")
-        return
-    
-    if proxies:
-        use_proxy = ask_proxy_preference()
-    
-    print(Fore.GREEN + "API scheduled every 24 hours for all accounts.")
-    while True:
-        for account in accounts:
-            run_api(account)
-        time.sleep(86400)  # Wait 24 hours before next run
-
 def main():
     load_accounts()
     load_proxies()
+    banner_text = load_banner()
+    print_yellow_banner(banner_text)
     
     while True:
         print("\nMenu:")
