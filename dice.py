@@ -3,6 +3,7 @@ import json
 import time
 from colorama import Fore, Style, init
 import random
+import os
 
 # Initialize colorama
 init(autoreset=True)
@@ -10,6 +11,9 @@ init(autoreset=True)
 # Constants
 API_URL = "https://www.magicnewton.com/portal/api/userQuests"
 BANNER_URL = "https://raw.githubusercontent.com/Aniketcrypto/aniketcrypto/refs/heads/main/magicnewton.txt"
+ACCOUNTS_FILE = "accounts.json"
+PROXIES_FILE = "proxies.json"
+
 headers_template = {
     "Content-Type": "application/json",
     "Accept": "*/*",
@@ -19,6 +23,44 @@ headers_template = {
 accounts = []
 proxies = []
 use_proxy = False
+
+def save_accounts():
+    try:
+        with open(ACCOUNTS_FILE, 'w') as f:
+            json.dump(accounts, f, indent=4)
+        print(Fore.GREEN + "Accounts saved successfully.")
+    except Exception as e:
+        print(Fore.RED + f"Error saving accounts: {e}")
+
+def load_accounts():
+    global accounts
+    try:
+        if os.path.exists(ACCOUNTS_FILE):
+            with open(ACCOUNTS_FILE, 'r') as f:
+                accounts = json.load(f)
+            print(Fore.GREEN + f"Loaded {len(accounts)} accounts.")
+    except Exception as e:
+        print(Fore.RED + f"Error loading accounts: {e}")
+        accounts = []
+
+def save_proxies():
+    try:
+        with open(PROXIES_FILE, 'w') as f:
+            json.dump(proxies, f, indent=4)
+        print(Fore.GREEN + "Proxies saved successfully.")
+    except Exception as e:
+        print(Fore.RED + f"Error saving proxies: {e}")
+
+def load_proxies():
+    global proxies
+    try:
+        if os.path.exists(PROXIES_FILE):
+            with open(PROXIES_FILE, 'r') as f:
+                proxies = json.load(f)
+            print(Fore.GREEN + f"Loaded {len(proxies)} proxies.")
+    except Exception as e:
+        print(Fore.RED + f"Error loading proxies: {e}")
+        proxies = []
 
 def load_banner():
     try:
@@ -63,12 +105,14 @@ def add_account():
         "formatted_cookies": formatted_cookies,
         "total_credits": 0
     })
+    save_accounts()
     print(Fore.GREEN + f"Account '{name}' added successfully.")
 
 def add_proxies():
     print(Fore.YELLOW + "\nEnter your proxies (one per line, format: ip:port or user:pass@ip:port)")
     print(Fore.YELLOW + "Press Enter twice when done:")
     
+    proxies.clear()
     while True:
         proxy = input().strip()
         if not proxy:
@@ -76,6 +120,7 @@ def add_proxies():
         proxies.append(proxy)
     
     if proxies:
+        save_proxies()
         print(Fore.GREEN + f"Added {len(proxies)} proxies successfully.")
     else:
         print(Fore.RED + "No proxies were added.")
@@ -114,6 +159,7 @@ def run_api(account):
                 resp_data = response.json()
                 credits = resp_data.get('data', {}).get('credits', 0)
                 account['total_credits'] += credits
+                save_accounts()  # Save after updating credits
                 print(Fore.GREEN + f"API call for {account['name']} succeeded.")
                 print(Fore.GREEN + f"Credits earned: {credits}")
                 print(Fore.GREEN + f"Total credits for {account['name']}: {account['total_credits']}")
@@ -170,6 +216,10 @@ def schedule_api():
         print(Fore.RED + "Invalid input. Please enter a number.")
 
 def main():
+    # Load saved data at startup
+    load_accounts()
+    load_proxies()
+    
     banner_text = load_banner()
     print_yellow_banner(banner_text)
 
