@@ -17,7 +17,6 @@ headers_template = {
 
 accounts = []
 
-# Load banner
 def load_banner():
     try:
         response = requests.get(BANNER_URL)
@@ -28,10 +27,21 @@ def load_banner():
         return "MagicNewton"
 
 def print_yellow_banner(banner_text):
-    # Print entire banner in yellow
     print(Fore.YELLOW + banner_text)
 
-banner_text = load_banner()
+def format_cookies(cookie_string):
+    """Format cookie string and return a dict of cookies"""
+    try:
+        # Split cookies and create a dictionary
+        cookies = {}
+        for cookie in cookie_string.split(';'):
+            if '=' in cookie:
+                name, value = cookie.strip().split('=', 1)
+                cookies[name.strip()] = value.strip()
+        return cookies
+    except Exception as e:
+        print(Fore.RED + f"Error formatting cookies: {e}")
+        return None
 
 def add_account():
     name = input(Fore.YELLOW + "Enter account name: ").strip()
@@ -41,16 +51,39 @@ def add_account():
         print(Fore.RED + "Error: Both account name and cookies are required.")
         return
 
-    accounts.append({"name": name, "cookies": cookies})
+    formatted_cookies = format_cookies(cookies)
+    if not formatted_cookies:
+        print(Fore.RED + "Error: Invalid cookie format")
+        return
+
+    accounts.append({
+        "name": name,
+        "cookies": cookies,
+        "formatted_cookies": formatted_cookies
+    })
     print(Fore.GREEN + f"Account '{name}' added successfully.")
 
 def run_api(account):
     payload = json.dumps({"questId": "f56c760b-2186-40cb-9cbc-3af4a3dc20e2", "metadata": {}})
     headers = headers_template.copy()
-    headers["Cookie"] = account["cookies"]
-
+    
     try:
-        response = requests.post(API_URL, data=payload, headers=headers)
+        # Send the request with cookies as a dictionary
+        response = requests.post(
+            API_URL, 
+            data=payload, 
+            headers=headers,
+            cookies=account["formatted_cookies"]
+        )
+        
+        # Print detailed response information for debugging
+        print(Fore.YELLOW + f"Response Status: {response.status_code}")
+        print(Fore.YELLOW + f"Response Headers: {dict(response.headers)}")
+        try:
+            print(Fore.YELLOW + f"Response Body: {response.json()}")
+        except:
+            print(Fore.YELLOW + f"Response Text: {response.text[:200]}")  # First 200 chars
+            
         if response.status_code == 200:
             print(Fore.GREEN + f"API call for {account['name']} succeeded.")
         else:
@@ -97,7 +130,8 @@ def schedule_api():
         print(Fore.RED + "Invalid input. Please enter a number.")
 
 def main():
-    print_yellow_banner(banner_text)  # Print the yellow banner
+    banner_text = load_banner()
+    print_yellow_banner(banner_text)
 
     while True:
         print("\nMenu:")
