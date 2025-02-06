@@ -2,6 +2,7 @@ import requests
 import json
 import time
 from colorama import Fore, Style, init
+import random
 
 # Initialize colorama
 init(autoreset=True)
@@ -15,6 +16,22 @@ headers_template = {
     "Accept-Encoding": "gzip, deflate, br, zstd"
 }
 
+# Available colors for banner
+COLORS = [
+    Fore.RED,
+    Fore.GREEN,
+    Fore.YELLOW,
+    Fore.BLUE,
+    Fore.MAGENTA,
+    Fore.CYAN,
+    Fore.LIGHTRED_EX,
+    Fore.LIGHTGREEN_EX,
+    Fore.LIGHTYELLOW_EX,
+    Fore.LIGHTBLUE_EX,
+    Fore.LIGHTMAGENTA_EX,
+    Fore.LIGHTCYAN_EX
+]
+
 accounts = []
 
 # Load banner
@@ -22,12 +39,33 @@ def load_banner():
     try:
         response = requests.get(BANNER_URL)
         response.raise_for_status()
-        # Get the raw text content
-        banner = response.text
-        return banner if banner else "MagicNewton"
+        return response.text if response.text else "MagicNewton"
     except Exception as e:
         print(Fore.RED + f"Failed to load banner: {str(e)}")
         return "MagicNewton"
+
+def print_colorful_banner(banner_text):
+    lines = banner_text.split('\n')
+    used_colors = []
+    
+    for line in lines:
+        if line.strip():  # Only color non-empty lines
+            # Choose a random color that wasn't used in the last few lines
+            available_colors = [c for c in COLORS if c not in used_colors[-3:]]
+            if not available_colors:
+                available_colors = COLORS
+            color = random.choice(available_colors)
+            used_colors.append(color)
+            
+            # Special handling for links and important text
+            if "http" in line:
+                print(Fore.LIGHTCYAN_EX + line)  # Links in cyan
+            elif "WELCOME TO" in line or "JOIN US NOW" in line:
+                print(Fore.LIGHTYELLOW_EX + line)  # Important messages in yellow
+            else:
+                print(color + line)
+        else:
+            print(line)  # Empty lines without color
 
 banner_text = load_banner()
 
@@ -95,7 +133,7 @@ def schedule_api():
         print(Fore.RED + "Invalid input. Please enter a number.")
 
 def main():
-    print(Fore.LIGHTBLUE_EX + banner_text)  # Print the full ASCII art banner
+    print_colorful_banner(banner_text)  # Print the colorful banner
 
     while True:
         print("\nMenu:")
