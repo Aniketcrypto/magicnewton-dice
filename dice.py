@@ -8,7 +8,7 @@ init(autoreset=True)
 
 # Constants
 API_URL = "https://www.magicnewton.com/portal/api/userQuests"
-BANNER_URL = "https://raw.githubusercontent.com/Aniketcrypto/aniketcrypto/refs/heads/main/magicnewton.json"
+BANNER_URL = "https://raw.githubusercontent.com/Aniketcrypto/aniketcrypto/refs/heads/main/magicnewton.txt"
 headers_template = {
     "Content-Type": "application/json",
     "Accept": "*/*",
