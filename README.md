@@ -12,6 +12,8 @@ this script doesn't require your seed or private key.
 
 ```pip install requests```
 
+if getting module error use this ```sudo apt install python3-tk```(for ubuntu vps)
+
 ```python3 dice.py```
 
 i hope you enjoy this script 😄😄
