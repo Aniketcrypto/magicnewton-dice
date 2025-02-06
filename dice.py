@@ -119,6 +119,33 @@ def run_api(account):
     except Exception as e:
         print(Fore.RED + f"Failed to run API for {account['name']}: {e}")
 
+def run_all():
+    global use_proxy
+    if proxies:
+        use_proxy = ask_proxy_preference()
+    for account in accounts:
+        run_api(account)
+
+def schedule_all():
+    global use_proxy
+    if proxies:
+        use_proxy = ask_proxy_preference()
+    print(Fore.GREEN + "API scheduled every 24 hours for all accounts.")
+    while True:
+        for account in accounts:
+            run_api(account)
+        time.sleep(86400)
+
+def add_account():
+    name = input(Fore.YELLOW + "Enter account name: ").strip()
+    cookies = input(Fore.YELLOW + "Enter account cookies: ").strip()
+    if not name or not cookies:
+        print(Fore.RED + "Error: Both account name and cookies are required.")
+        return
+    accounts.append({"name": name, "cookies": cookies, "formatted_cookies": {}, "total_credits": 0})
+    save_accounts()
+    print(Fore.GREEN + f"Account '{name}' added successfully.")
+
 def main():
     load_accounts()
     load_proxies()
